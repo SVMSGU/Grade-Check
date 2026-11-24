@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Systems Unit Grade Calculator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caladea:wght@400;700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* Layout: one narrow worksheet column, like the Excel tool it replaces. Weights on the left, scores in the middle, the result band underneath. */
+:root{
+  --bg:#FBFCFC; --paper:#FFFFFF; --ink:#16202E; --muted:#4F5D6E; --rule:#C9D6DD;
+  --navy:#14294B; --teal:#1F7A8C; --aqua:#E8F4F6; --yellow:#F5C518;
+  --pass:#2E7D4F; --pass-bg:#E7F3EC; --fail:#B8392F; --fail-bg:#FBECEA; --warn:#9A6B00; --warn-bg:#FDF4DC;
+  --serif:"Caladea", Cambria, Georgia, serif;
+  --sans:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1621; --paper:#152030; --ink:#E6ECF2; --muted:#A3B1C0; --rule:#2B3A4D;
+  --navy:#C9D9F0; --teal:#6CC3D2; --aqua:#18303A;
+  --pass:#7CCB9B; --pass-bg:#173225; --fail:#F08B80; --fail-bg:#3A1F1E; --warn:#E7C25C; --warn-bg:#3A3018; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1621; --paper:#152030; --ink:#E6ECF2; --muted:#A3B1C0; --rule:#2B3A4D;
+  --navy:#C9D9F0; --teal:#6CC3D2; --aqua:#18303A;
+  --pass:#7CCB9B; --pass-bg:#173225; --fail:#F08B80; --fail-bg:#3A1F1E; --warn:#E7C25C; --warn-bg:#3A3018; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+.wrap{max-width:40rem;margin:0 auto;padding-block:1.6rem 2.4rem;display:grid;gap:1.4rem}
+header{border-bottom:3px solid var(--navy);padding-bottom:.9rem;display:grid;gap:.3rem}
+.label{font-family:var(--sans);font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--teal)}
+h1{font-size:1.9rem;line-height:1.2;color:var(--navy);margin:0;text-wrap:balance}
+header p{margin:0;color:var(--muted)}
+.term{display:grid;gap:.35rem}
+.term label{font-family:var(--sans);font-weight:700;font-size:.95rem}
+select,input{font:inherit;color:var(--ink);background:var(--paper);border:1.5px solid var(--rule);border-radius:3px}
+select{font-family:var(--sans);font-size:1.05rem;padding:.5rem .6rem;width:100%;max-width:16rem}
+select:focus-visible,input:focus-visible{outline:2px solid var(--teal);outline-offset:1px;border-color:var(--teal)}
+.sheet{background:var(--paper);border:1px solid var(--rule)}
+.row{display:grid;grid-template-columns:minmax(0,1fr) 4.5rem 7.5rem;gap:.8rem;align-items:center;padding:.7rem 1rem;border-bottom:1px solid var(--rule)}
+.row:last-child{border-bottom:0}
+.row.head{font-family:var(--sans);font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--navy);padding-block:.55rem}
+.row.final{background:var(--aqua)}
+.exam{min-width:0}
+.weight{font-family:var(--sans);font-variant-numeric:tabular-nums;color:var(--muted);text-align:right}
+.score{display:flex;align-items:center;gap:.3rem}
+.score input{width:100%;font-family:var(--sans);font-size:1.05rem;font-variant-numeric:tabular-nums;text-align:right;padding:.4rem .5rem}
+.score span{font-family:var(--sans);color:var(--muted)}
+input[aria-invalid="true"]{border-color:var(--fail)}
+.result{border:2px solid var(--rule);background:var(--paper);padding:1.1rem 1.2rem;display:grid;gap:.5rem}
+.result .big{display:flex;flex-wrap:wrap;gap:.4rem 1rem;align-items:baseline}
+.grade{font-family:var(--sans);font-size:2.1rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--navy)}
+.verdict{font-family:var(--sans);font-weight:700;font-size:1.05rem;letter-spacing:.06em;padding:.2rem .7rem;border-radius:3px}
+.result.pass{border-color:var(--pass)} .result.pass .verdict{background:var(--pass-bg);color:var(--pass)}
+.result.fail{border-color:var(--fail)} .result.fail .verdict{background:var(--fail-bg);color:var(--fail)}
+.result.need{border-color:var(--warn)} .result.need .verdict{background:var(--warn-bg);color:var(--warn)}
+.result p{margin:0}
+.msg{font-size:1rem}
+.err{color:var(--fail);font-family:var(--sans);font-size:.92rem}
+button.clear{justify-self:start;font-family:var(--sans);font-size:.92rem;background:transparent;color:var(--navy);border:1.5px solid var(--navy);border-radius:3px;padding:.35rem .8rem;cursor:pointer}
+button.clear:hover{background:var(--navy);color:var(--paper)}
+button.clear:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.notes{font-family:var(--sans);font-size:.9rem;color:var(--muted);display:grid;gap:.4rem;border-top:1px solid var(--rule);padding-top:1rem}
+.notes p{margin:0}
+@media (max-width:480px){
+  .row{grid-template-columns:minmax(0,1fr) 6.5rem;gap:.2rem .8rem}
+  .row .weight{grid-column:1;grid-row:2;text-align:left;font-size:.88rem}
+  .row .score{grid-column:2;grid-row:1 / span 2}
+  .row.head .weight{display:none}
+  h1{font-size:1.6rem}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <span class="label">Learning with Dr. A</span>
+    <h1>Systems Unit Grade Calculator</h1>
+    <p>Choose your term, enter your exam grades, and see where you stand.</p>
+  </header>
+
+  <div class="term">
+    <label for="term">Term</label>
+    <select id="term"></select>
+  </div>
+
+  <div class="sheet" id="sheet"></div>
+  <p class="err" id="err" role="alert" hidden></p>
+
+  <div class="result" id="result" aria-live="polite"></div>
+  <button type="button" class="clear" id="clear">Clear grades</button>
+
+  <div class="notes">
+    <p id="courseNote"></p>
+    <p>You pass the Systems unit with 69.5% or higher. Leave the final blank to see the grade you need on it to pass.</p>
+    <p>This is an estimate. Your official grade comes from your course director.</p>
+  </div>
+</div>
+
+<script>
+const PASS = 69.5;
+const TERMS = {
+  "1": {course:"VM510", exams:[["Modular exam 1: VF",10],["Modular exam 2: I&I",10],["Modular exam 3: CVR",10],["Final exam",70]]},
+  "2": {course:"VM520", exams:[["Modular exam 1: H&R",4],["Modular exam 2: UWB",9],["Modular exam 3: Dig 1",9],["Modular exam 4: Dig 2",8],["Final exam",70]]},
+  "3": {course:"VM530", exams:[["Modular exam 1: MC",10],["Modular exam 2: SSI",6],["Modular exam 3: RPM",8],["Modular exam 4: EA",6],["Final exam",70]]},
+  "4": {course:"VM540", exams:[["Modular exam 1: FCM",7],["Modular exam 2: IIO",8],["Modular exam 3: CVR",8],["Modular exam 4: SSI",7],["Final exam",70]]},
+  "5": {course:"VM550", exams:[["Modular exam 1: RPM",8],["Modular exam 2: Endocrine",6],["Modular exam 3: DMN",8],["Modular exam 4: RUT",8],["Final exam",70]]}
+};
+
+const termSel = document.getElementById("term");
+const sheet = document.getElementById("sheet");
+const result = document.getElementById("result");
+const errEl = document.getElementById("err");
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem("sug-scores") || "{}") || {}; } catch(e) { saved = {}; }
+
+Object.keys(TERMS).forEach(t=>{
+  const o=document.createElement("option"); o.value=t; o.textContent="Term "+t; termSel.appendChild(o);
+});
+let startTerm="1"; try { startTerm = localStorage.getItem("sug-term") || "1"; } catch(e) {}
+if (!TERMS[startTerm]) startTerm="1";
+termSel.value = startTerm;
+
+function fmt(n){ return (Math.round(n*100)/100).toFixed(2); }
+
+function build(){
+  const t=termSel.value, T=TERMS[t];
+  const vals = saved[t] || [];
+  sheet.innerHTML = `<div class="row head"><span>Exam</span><span class="weight">Weight</span><span>Grade</span></div>` +
+    T.exams.map(([name,w],i)=>`
+      <div class="row${i===T.exams.length-1?" final":""}">
+        <label class="exam" for="s${t}-${i}">${name}</label>
+        <span class="weight">${w}%</span>
+        <span class="score"><input id="s${t}-${i}" data-i="${i}" type="number" inputmode="decimal" min="0" max="100" step="any" placeholder="--" value="${vals[i]??""}" aria-label="${name} grade, percent"><span>%</span></span>
+      </div>`).join("");
+  document.getElementById("courseNote").textContent =
+    `Term ${t}: your Systems unit grade counts for 80% of your ${T.course} course grade.`;
+  sheet.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",calc));
+  calc();
+}
+
+function calc(){
+  const t=termSel.value, T=TERMS[t];
+  const inputs=[...sheet.querySelectorAll("input")];
+  const raw=inputs.map(i=>i.value.trim());
+  saved[t]=raw;
+  try { localStorage.setItem("sug-scores", JSON.stringify(saved)); localStorage.setItem("sug-term", t); } catch(e) {}
+
+  let bad=false;
+  const nums=raw.map((v,i)=>{
+    if(v===""){ inputs[i].removeAttribute("aria-invalid"); return null; }
+    const n=Number(v);
+    const ok=Number.isFinite(n) && n>=0 && n<=100;
+    inputs[i].setAttribute("aria-invalid", ok?"false":"true");
+    if(!ok) bad=true;
+    return ok?n:null;
+  });
+  errEl.hidden=!bad; errEl.textContent= bad ? "Enter each grade as a percent from 0 to 100." : "";
+
+  const last=T.exams.length-1;
+  const modularMissing = nums.slice(0,last).some(n=>n===null);
+  const finalMissing = nums[last]===null;
+  result.className="result";
+
+  if(bad){ result.innerHTML=`<p class="msg">Fix the grade marked in red to see your result.</p>`; return; }
+  if(modularMissing){
+    const done=nums.slice(0,last).filter(n=>n!==null).length;
+    result.innerHTML=`<p class="msg">Enter all ${last} modular exam grades to see your result. ${done} of ${last} entered.</p>`;
+    return;
+  }
+  const partial = nums.slice(0,last).reduce((s,n,i)=>s + n*T.exams[i][1]/100, 0);
+  const fw = T.exams[last][1]/100;
+
+  if(finalMissing){
+    const need = (PASS - partial)/fw;
+    result.classList.add("need");
+    let msg;
+    if(need<=0) msg = `Your modular exams already put you at ${fmt(partial)} of the ${PASS} you need. You still need to sit the final, but any score passes.`;
+    else if(need>100) msg = `Your modular exams count for ${fmt(partial)} points. Even 100% on the final would not reach ${PASS}. Please talk with your course director, and book a Learning Strategist appointment so we can plan together.`;
+    else msg = `Your modular exams count for ${fmt(partial)} points toward your grade. To reach ${PASS}, you need at least <b>${fmt(need)}%</b> on the final exam.`;
+    result.innerHTML = `<div class="big"><span class="grade">${need>100?"Over 100%":need<=0?"Any score":fmt(Math.max(need,0))+"%"}</span><span class="verdict">NEEDED ON FINAL</span></div><p class="msg">${msg}</p>`;
+    return;
+  }
+
+  const grade = partial + nums[last]*fw;
+  const pass = grade >= PASS - 1e-9;
+  result.classList.add(pass?"pass":"fail");
+  const msg = pass
+    ? `Your Systems unit grade is ${fmt(grade)}%. That meets the ${PASS}% pass mark.`
+    : `Your Systems unit grade is ${fmt(grade)}%, which is ${fmt(PASS-grade)} points below the ${PASS}% pass mark. Please book a Learning Strategist appointment so we can make a plan.`;
+  result.innerHTML = `<div class="big"><span class="grade">${fmt(grade)}%</span><span class="verdict">${pass?"PASS":"FAIL"}</span></div><p class="msg">${msg}</p>`;
+}
+
+termSel.addEventListener("change",build);
+document.getElementById("clear").addEventListener("click",()=>{
+  saved[termSel.value]=[]; build();
+  const first=sheet.querySelector("input"); if(first) first.focus();
+});
+build();
+</script>
+</body>
+</html>
